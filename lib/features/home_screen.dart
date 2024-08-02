@@ -1,6 +1,40 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+// Enum to differentiate each task priority
+enum Priority { High, Medium, Low }
+
+//Base task class with properties
+
+class Task {
+  String title;
+  String description;
+  DateTime dueDate;
+  Priority priority;
+  bool isEdited;
+
+  Task({
+    required this.title,
+    required this.description,
+    required this.dueDate,
+    required this.priority,
+    this.isEdited = false,     // Indicates if the task has been edited
+  });
+}
+
+// Mixin to show a Snackbar when a task is completed
+mixin TaskNotifier {
+  void logCompletion(BuildContext context, Task task) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Task "${task.title}" completed.'),
+        duration: Duration(seconds: 5),
+      ),
+    );
+  }
+}
+
+// Main HomeScreen widget which is stateful
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -8,73 +42,288 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TaskNotifier{
+  // Controllers to manage text input fields
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  DateTime? _selectedDate;
+  Priority _selectedPriority = Priority.Low;   // Default priority is Low
+  final List<Task> _tasks = [];    // List to store tasks
 
-  //_controller is a TexyEditingController that manages the text input field
-  //it allows the user to retrive the current value of the textfield
-
-  //_tasks is a list of strings that stores the tasks that the user entered
-
-  final TextEditingController _controller = TextEditingController();
-  final List<String> _tasks   = [];
-
-// _addTask is a method that adds the text from the input field to the _tasks list if it is not empty.
-// setState is called to notify the framework that the state has changed, which triggers a rebuild of the UI.
-// _controller.text.isNotEmpty checks if the input field is not empty.
-// _tasks.add(_controller.text) adds the text to the _tasks list.
-// _controller.clear() clears the input field.
-
-void _addTask(){
-    if(_controller.text.isNotEmpty) {
+  // Method to add a new task
+  void _addTask(){
+    if(_titleController.text.isNotEmpty && _selectedDate != null){
       setState(() {
-        _tasks.insert(0, _controller.text);
-        _controller.clear();
+        // Insert new task at the beginning of the list
+        _tasks.insert(
+            0,
+            Task(
+              title: _titleController.text,
+              description: _descriptionController.text,
+              dueDate: _selectedDate!,
+              priority: _selectedPriority,
+            )
+        );
+        _clearTasks();   // Clear input fields after adding task
       });
     }
   }
+
+
+  // Method to edit an existing task
+  void _editTask(Task task, int index) {
+    _titleController.text = task.title;
+    _descriptionController.text = task.description;
+    _selectedDate = task.dueDate;
+    _selectedPriority = task.priority;
+
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text("Edit Task"),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(labelText: "Title"),
+                  ),
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(labelText: "Description"),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: Text(
+                            _selectedDate == null
+                                ? "No date chosen:"
+                                : "Due Date: ${DateFormat("yyyy-MM-dd").format(_selectedDate!)}",
+                          ),
+                      ),
+                      TextButton(
+                        onPressed: () => _selectDate(context),
+                        child: Text("Select date"),
+                      ),
+                    ],
+                  ),
+                  DropdownButton<Priority>(
+                    value: _selectedPriority,
+                      items: Priority.values.map((Priority priority){
+                        return DropdownMenuItem<Priority>(
+                          value: priority,
+                            child: Text(priority.toString().split('.').last),
+                        );
+                      }).toList(),
+                      onChanged: (Priority? newValue) {
+                      setState(() {
+                        _selectedPriority = newValue!;
+                      });
+                      },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    setState(() {
+                      // Update task with new values and mark as edited
+                      _tasks[index] = Task(
+                        title: _titleController.text,
+                        description: _descriptionController.text,
+                        dueDate: _selectedDate!,
+                        priority: _selectedPriority,
+                        isEdited: true,
+                      );
+                      _clearTasks();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                child: Text('Save'),
+                ),
+                TextButton(
+                   onPressed: () {
+                     _clearTasks();
+                      Navigator.of(context).pop();
+                  },
+                 child: Text('Cancel'),
+                ),
+            ],
+          );
+        },
+    );
+  }
+
+  // Method to confirm deletion of a task with a dialog
+void _confirmDelete(BuildContext context, Task task, int index) {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Are you done with the task?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    logCompletion(context, task);
+                    _tasks.removeAt(index);
+                  });
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text('Yes'),
+              ),
+            ],
+          );
+        },
+    );
+}
+
+  // Method to show date picker and select a date
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  // Method to clear input fields
+  void _clearTasks(){
+    _titleController.clear();
+    _descriptionController.clear();
+    _selectedDate = null;
+    _selectedPriority = Priority.Low;
+  }
+
+  // Helper method to format the priority enum value
+  String _formatPriority(Priority priority) {
+    return priority.toString().split('.').last;
+  }
+
+  // Main UI of the app
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text( "Task Manager"),
+        title: Text("Task Manager"),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                labelText: "Add a task",
-                suffixIcon: IconButton(
-                    icon: Icon(Icons.add),
-                  onPressed: _addTask,
-                ),
-              ),
+              controller: _titleController,
+              decoration: InputDecoration(labelText: "Title"),
             ),
-            //SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+            TextField(
+              controller: _descriptionController,
+              decoration: InputDecoration(labelText: "Description"),
+            ),
+            SizedBox(height: 20,),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _selectedDate == null
+                        ? "No date chosen!"
+                        : "Due Date: ${DateFormat("yyyy-MM-dd").format(_selectedDate!)}",
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _selectDate(context),
+                  child: Text("Select date"),
+                ),
+              ],
+            ),
+            SizedBox(height: 20,),
 
-            // Expanded widget expands to fill the available space in the parent Column.
-            // ListView.builder creates a scrollable list of items dynamically.
-            // itemCount: _tasks.length specifies the number of items in the list, which is the length of _tasks.
-            // itemBuilder: (context, index) is a function that returns a widget for each item in the list.
-            // ListTile is a widget that represents a single row in a list.
-            // title: Text(_tasks[index]) sets the title of the ListTile to the task text at the current index.
-            Expanded(
-              child: ListView.builder(
-                itemCount: _tasks.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_tasks[index]),
+            // Dropdown for selecting priority
+            DropdownButton(
+              value: _selectedPriority,
+                items: Priority.values.map((Priority priority){
+                  return DropdownMenuItem<Priority>(
+                    value: priority,
+                      child: Text(priority.toString().split('.').last),
                   );
-                }
-              )
-            )
-
-          ]
+                }).toList(),
+                onChanged: (Priority? newValue) {
+                setState(() {
+                  _selectedPriority = newValue!;
+                });
+                },
+            ),
+            SizedBox(height: 20,),
+            ElevatedButton(
+                onPressed: _addTask,
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.blue,
+                ),
+              child: Text("Add Task"),
+            ),
+            Expanded(
+                child: ListView.builder(
+                  itemCount: _tasks.length,
+                    itemBuilder: (context, index) {
+                    final task = _tasks[index];
+                    return ListTile(
+                      title: Row(
+                        children: [
+                          Text(task.title, style: TextStyle(fontSize: 18),),
+                        if (task.isEdited)
+                          Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                            child: Text("Edited", style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        "${task.description}\nDue Date: ${DateFormat("yyyy-MM-dd").format(task.dueDate)}\nPriority: ${_formatPriority(task.priority)}",
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              _editTask(task, index);
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () {
+                              _confirmDelete(context, task, index);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                    },
+                ),
+            ),
+          ],
         ),
-      ) ,
+      ),
     );
   }
 }
+
