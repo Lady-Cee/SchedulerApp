@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'task.dart';
 import 'task_notifier.dart';
 
@@ -13,6 +15,25 @@ class TaskUpdates with TaskNotifier {
 
   List<Task> get tasks => _tasks;
 
+  TaskUpdates() {
+    _loadTasks();
+  }
+
+  void _loadTasks() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? tasksString = prefs.getString('tasks');
+    if (tasksString != null) {
+      List<dynamic> tasksJson = jsonDecode(tasksString);
+      _tasks.addAll(tasksJson.map((taskJson) => Task.fromJson(taskJson)).toList());
+    }
+  }
+
+  void _saveTasks() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String tasksString = jsonEncode(_tasks.map((task) => task.toJson()).toList());
+    await prefs.setString('tasks', tasksString);
+  }
+
   void addTask(BuildContext context, Function setState) {
     if (titleController.text.isEmpty || descriptionController.text.isEmpty || selectedDate == null) {
       setState(() {
@@ -20,22 +41,23 @@ class TaskUpdates with TaskNotifier {
       });
       return;
     }
-      _tasks.add(
-        Task(
-          title: titleController.text,
-          description: descriptionController.text,
-          dueDate: selectedDate!,
-          priority: selectedPriority,
-        ),
-      );
-      _sortTasks();
-      clearTasks();
-      setState((){
-        errorMessage ="";
-      });
-    }
+    _tasks.add(
+      Task(
+        title: titleController.text,
+        description: descriptionController.text,
+        dueDate: selectedDate!,
+        priority: selectedPriority,
+      ),
+    );
+    _sortTasks();
+    clearTasks();
+    setState(() {
+      errorMessage = "";
+    });
+    _saveTasks();
+  }
 
-  void handleAddTask(Function setState, TaskUpdates taskUpdate, BuildContext context ) {
+  void handleAddTask(Function setState, TaskUpdates taskUpdate, BuildContext context) {
     setState(() {
       taskUpdate.addTask(context, setState);
     });
@@ -109,6 +131,7 @@ class TaskUpdates with TaskNotifier {
                   _sortTasks();
                   clearTasks();
                 });
+                _saveTasks();
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
@@ -132,6 +155,7 @@ class TaskUpdates with TaskNotifier {
       setState(() {
         _tasks.removeAt(index);
       });
+      _saveTasks();
     }
   }
 
@@ -191,7 +215,72 @@ class TaskUpdates with TaskNotifier {
   String formatPriority(Priority priority) {
     return priority.toString().split('.').last;
   }
+
+  String formatDateWithSuffix(DateTime date) {
+    final now = DateTime.now();
+    final tomorrow = now.add(Duration(days: 1));
+
+    // Check if the date is today
+    if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(now)) {
+      return "Today";
+    }
+
+    // Check if the date is tomorrow
+    if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(tomorrow)) {
+      return "Tomorrow";
+    }
+
+    // Otherwise, return the date with the correct suffix
+    String day = DateFormat('d').format(date);
+    String suffix;
+
+    if (day.endsWith('1') && !day.endsWith('11')) {
+      suffix = 'st';
+    } else if (day.endsWith('2') && !day.endsWith('12')) {
+      suffix = 'nd';
+    } else if (day.endsWith('3') && !day.endsWith('13')) {
+      suffix = 'rd';
+    } else {
+      suffix = 'th';
+    }
+
+    return "${day}${suffix} ${DateFormat('MMMM, yyyy').format(date)}";
+  }
+
+  // to include time
+  // String formatDateWithSuffix(DateTime date) {
+  //   final now = DateTime.now();
+  //   final tomorrow = now.add(Duration(days: 1));
+  //
+  //   // Check if the date is today
+  //   if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(now)) {
+  //     return "Today at ${DateFormat('h:mm a').format(date)}";
+  //   }
+  //
+  //   // Check if the date is tomorrow
+  //   if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(tomorrow)) {
+  //     return "Tomorrow at ${DateFormat('h:mm a').format(date)}";
+  //   }
+  //
+  //   // Otherwise, return the date with the correct suffix and time
+  //   String day = DateFormat('d').format(date);
+  //   String suffix;
+  //
+  //   if (day.endsWith('1') && !day.endsWith('11')) {
+  //     suffix = 'st';
+  //   } else if (day.endsWith('2') && !day.endsWith('12')) {
+  //     suffix = 'nd';
+  //   } else if (day.endsWith('3') && !day.endsWith('13')) {
+  //     suffix = 'rd';
+  //   } else {
+  //     suffix = 'th';
+  //   }
+  //
+  //   return "${day}${suffix} ${DateFormat('MMMM, yyyy').format(date)} at ${DateFormat('h:mm a').format(date)}";
+  // }
+
 }
+
 
 
 
@@ -206,11 +295,17 @@ class TaskUpdates with TaskNotifier {
 //   final TextEditingController descriptionController = TextEditingController();
 //   DateTime? selectedDate;
 //   Priority selectedPriority = Priority.Low;
+//   String errorMessage = " ";
 //
 //   List<Task> get tasks => _tasks;
 //
-//   void addTask() {
-//     if (titleController.text.isNotEmpty && selectedDate != null) {
+//   void addTask(BuildContext context, Function setState) {
+//     if (titleController.text.isEmpty || descriptionController.text.isEmpty || selectedDate == null) {
+//       setState(() {
+//         errorMessage = "Please fill in the task details!";
+//       });
+//       return;
+//     }
 //       _tasks.add(
 //         Task(
 //           title: titleController.text,
@@ -221,7 +316,15 @@ class TaskUpdates with TaskNotifier {
 //       );
 //       _sortTasks();
 //       clearTasks();
+//       setState((){
+//         errorMessage ="";
+//       });
 //     }
+//
+//   void handleAddTask(Function setState, TaskUpdates taskUpdate, BuildContext context ) {
+//     setState(() {
+//       taskUpdate.addTask(context, setState);
+//     });
 //   }
 //
 //   void editTask(Task task, int index, Function setState, BuildContext context) {
@@ -309,12 +412,16 @@ class TaskUpdates with TaskNotifier {
 //     );
 //   }
 //
-//   void deleteTask(int index, BuildContext context, Task task, Function logCompletion) {
-//     logCompletion(context, task);
-//     _tasks.removeAt(index);
+//   void deleteTask(int index, BuildContext context, Task task, Function logCompletion, Function setState) {
+//     if (index >= 0 && index < _tasks.length) {
+//       logCompletion(context, task);
+//       setState(() {
+//         _tasks.removeAt(index);
+//       });
+//     }
 //   }
 //
-//   void confirmDelete(BuildContext context, Task task, int index, Function logCompletion) {
+//   void confirmDelete(BuildContext context, Task task, int index, Function logCompletion, Function setState) {
 //     showDialog(
 //       context: context,
 //       builder: (context) {
@@ -329,7 +436,7 @@ class TaskUpdates with TaskNotifier {
 //             ),
 //             TextButton(
 //               onPressed: () {
-//                 deleteTask(index, context, task, logCompletion);
+//                 deleteTask(index, context, task, logCompletion, setState);
 //                 Navigator.of(context).pop(); // Close the dialog
 //               },
 //               child: Text('Yes'),
@@ -339,7 +446,6 @@ class TaskUpdates with TaskNotifier {
 //       },
 //     );
 //   }
-//
 //
 //   void clearTasks() {
 //     titleController.clear();
@@ -372,3 +478,4 @@ class TaskUpdates with TaskNotifier {
 //     return priority.toString().split('.').last;
 //   }
 // }
+//
