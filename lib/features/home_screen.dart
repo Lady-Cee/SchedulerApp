@@ -77,14 +77,13 @@ class _HomeScreenState extends State<HomeScreen> with TaskNotifier {
                   Expanded(
                     child: Text(
                       taskFormInput.selectedDate == null
-                          ? "No date chosen!"
-                          : "Due Date: ${DateFormat("yyyy-MM-dd").format(
-                          taskFormInput.selectedDate!)}",
+                          ? "No date & time chosen!"
+                          : "Due Date & time: ${taskFormInput.formatDateTime()}",
                     ),
                   ),
                   TextButton(
                     onPressed: () => taskFormInput.selectDate(context, setState),
-                    child: Text("Select date"),
+                    child: Text("Select date & time"),
                   ),
                 ],
               ),
@@ -131,11 +130,6 @@ class _HomeScreenState extends State<HomeScreen> with TaskNotifier {
               SizedBox(height: MediaQuery.of(context).size.height*0.01,),
              // Text(taskFormInput.errorMessage, style: TextStyle(color: Colors.red)),
               ElevatedButton(
-                // onPressed: () =>
-                //     taskUpdate.handleAddTask(setState, taskUpdate, context),
-                // style: ElevatedButton.styleFrom(
-                //   foregroundColor: Colors.white,
-                //   backgroundColor: Colors.blue,
                 onPressed: () {
                   if (taskFormInput.validateForm()) {
                     Task newTask = Task(
@@ -227,22 +221,28 @@ class _HomeScreenState extends State<HomeScreen> with TaskNotifier {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return "${date.year}-${date.month}-${date.day}";
-  }
+  // String _formatDate(DateTime date) {
+  //   return "${date.year}-${date.month}-${date.day}";
+  // }
+
+  // String _formatDate(DateTime date) {
+  //   return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+  // }
+
 
   String _formatDateWithSuffix(DateTime date) {
     final now = DateTime.now();
     final tomorrow = now.add(Duration(days: 1));
+    final timeFormatted = DateFormat('h: mm a').format(date);
 
     if (DateTime(now.year, now.month, now.day) ==
         DateTime(date.year, date.month, date.day)) {
-      return "Today";
+      return "Today at $timeFormatted";
     }
 
     if (DateTime(tomorrow.year, tomorrow.month, tomorrow.day) ==
         DateTime(date.year, date.month, date.day)) {
-      return "Tomorrow";
+      return "Tomorrow at $timeFormatted";
     }
 
     String day = date.day.toString();
@@ -257,8 +257,8 @@ class _HomeScreenState extends State<HomeScreen> with TaskNotifier {
     } else {
       suffix = 'th';
     }
-
-    return "${day}${suffix} ${DateFormat('MMMM, yyyy').format(date)}";
+    return "${day}${suffix} ${DateFormat('MMMM, yyyy').format(date)} at ${DateFormat('h:mm a').format(date)}";
+    //return "${day}${suffix} ${DateFormat('MMMM, yyyy').format(date)}";
   }
 
   String _formatPriority(TaskPriority priority) {
@@ -374,18 +374,19 @@ class _HomeScreenState extends State<HomeScreen> with TaskNotifier {
                     controller: taskFormInput.descriptionController,
                     decoration: InputDecoration(labelText: "Description"),
                   ),
+
                   Row(
                     children: [
                       Expanded(
                         child: Text(
                           taskFormInput.selectedDate == null
-                              ? "No date chosen"
-                              : "Due Date: ${_formatDate(taskFormInput.selectedDate!)}",
+                              ? "No date & time chosen!"
+                              : "Due Date & time: ${taskFormInput.formatDateTime()}",
                         ),
                       ),
                       TextButton(
                         onPressed: () => taskFormInput.selectDate(context, setState),
-                        child: Text("Select date"),
+                        child: Text("Select date & time"),
                       ),
                     ],
                   ),
