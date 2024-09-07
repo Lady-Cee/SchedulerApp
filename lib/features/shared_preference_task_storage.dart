@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:second_mentorship_task/features/task.dart';
+import 'package:MyScheduler/features/task.dart';
 
 abstract class TaskStorage {
   Future<List<Task>> loadTasks();

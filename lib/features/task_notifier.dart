@@ -2,7 +2,7 @@
 
 // Mixin to show a Snackbar when a task is completed
 import 'package:flutter/material.dart';
-import 'package:second_mentorship_task/features/task.dart';
+import 'package:MyScheduler/features/task.dart';
 
 mixin TaskNotifier {
   void logCompletion(BuildContext context, Task task) {

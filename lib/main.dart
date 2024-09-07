@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:MyScheduler/features/alarm_notification.dart';
 
 import 'features/home_screen.dart';
 
-void main() {
+void main() async {
+  // Ensure that Flutter's binding is initialized before doing any asynchronous work
+   WidgetsFlutterBinding.ensureInitialized();
+  //
+    // Initialize the alarm notification
+  final alarmNotification = AlarmNotification();
+  await alarmNotification.initNotifications();
+
+
+  // Run the app
   runApp(TaskManagerApp());
 }
 

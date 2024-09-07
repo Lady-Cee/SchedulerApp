@@ -1,6 +1,6 @@
 {
-    "name": "second_mentorship_task",
-    "short_name": "second_mentorship_task",
+    "name": "MyScheduler",
+    "short_name": "MyScheduler",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

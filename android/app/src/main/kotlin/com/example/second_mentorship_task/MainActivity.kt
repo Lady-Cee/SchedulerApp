@@ -1,4 +1,4 @@
-package com.example.second_mentorship_task
+package com.example.MyScheduler
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,4 +1,4 @@
-# second_mentorship_task
+# MyScheduler
 
 A new Flutter project.
 

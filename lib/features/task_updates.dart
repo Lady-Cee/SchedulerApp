@@ -1,6 +1,6 @@
 
-import 'package:second_mentorship_task/features/shared_preference_task_storage.dart';
-import 'package:second_mentorship_task/features/task.dart';
+import 'package:MyScheduler/features/shared_preference_task_storage.dart';
+import 'package:MyScheduler/features/task.dart';
 
 class TaskUpdates{
   final TaskStorage storage;

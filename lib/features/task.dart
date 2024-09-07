@@ -14,6 +14,8 @@ class Task {
   DateTime dueDate;
   TaskPriority priority;
   bool isEdited;
+  bool showCheckbox;
+  bool isSelected;
 
   Task({
     required this.title,
@@ -21,6 +23,8 @@ class Task {
     required this.dueDate,
     required this.priority,
     this.isEdited = false,
+    this.showCheckbox = false,
+    this.isSelected = false
   });
 
 // Method to convert a Task object into a JSON-like map.
@@ -30,6 +34,7 @@ class Task {
     'description': description,
     'dueDate': dueDate.toIso8601String(),
     'priority': priority.index,
+    'isSelected': isSelected,
     'isEdited': isEdited,
   };
 
@@ -40,6 +45,7 @@ class Task {
     description: json['description'],
     dueDate: DateTime.parse(json['dueDate']),
     priority: TaskPriority.values[json['priority']],
+    isSelected: json['isSelected'] ?? false,
     isEdited: json['isEdited'] ?? false,
   );
 
